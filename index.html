@@ -3,207 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus P2P Party Hub</title>
+    <title>Nexus P2P - Global Party Chat</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { 
-            --bg: #0b0e14; --sidebar: #151921; --accent: #3b82f6; 
-            --success: #10b981; --text: #e2e8f0; --msg-me: #2563eb; --msg-other: #1e293b;
+            --bg: #0d1117; --sidebar: #161b22; --accent: #58a6ff; 
+            --success: #238636; --text: #c9d1d9; --border: #30363d;
+            --msg-me: #1f6feb; --msg-other: #21262d;
         }
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
         /* Sidebar */
-        #sidebar { width: 280px; background: var(--sidebar); border-right: 1px solid #2d3748; display: flex; flex-direction: column; }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid #2d3748; }
-        .my-id-badge { font-size: 0.7rem; color: var(--accent); background: rgba(59, 130, 246, 0.1); padding: 5px 10px; border-radius: 5px; margin-bottom: 15px; display: inline-block; }
+        #sidebar { width: 280px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+        .my-id-badge { font-size: 0.7rem; color: var(--accent); background: rgba(88, 166, 255, 0.1); padding: 8px; border-radius: 6px; margin-bottom: 15px; word-break: break-all; border: 1px solid rgba(88, 166, 255, 0.2); }
         
-        .party-list { flex: 1; overflow-y: auto; padding: 15px; }
-        .party-item { 
-            padding: 12px; margin-bottom: 10px; border-radius: 10px; cursor: pointer; 
-            background: #1e2532; transition: 0.2s; border: 1px solid transparent; position: relative;
-        }
-        .party-item:hover { background: #2d3748; }
-        .party-item.active { border-color: var(--accent); background: #252f3f; }
-        .party-item::after { content: '•'; color: var(--success); position: absolute; right: 10px; top: 12px; font-size: 20px; }
+        .party-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .party-item { padding: 12px; margin-bottom: 8px; border-radius: 6px; cursor: pointer; background: transparent; border: 1px solid transparent; transition: 0.2s; }
+        .party-item:hover { background: #21262d; }
+        .party-item.active { background: #1f6feb22; border-color: var(--msg-me); }
 
         /* Main Chat */
-        main { flex: 1; display: flex; flex-direction: column; background: #0f172a; }
-        #chat-header { 
-            padding: 15px 25px; background: var(--sidebar); display: flex; 
-            justify-content: space-between; align-items: center; border-bottom: 1px solid #2d3748;
-        }
-        .header-info h3 { margin: 0; font-size: 1.1rem; }
-        .header-info span { font-size: 0.8rem; color: #94a3b8; }
-
-        #messages { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px 16px; border-radius: 15px; max-width: 75%; line-height: 1.5; position: relative; animation: slideUp 0.2s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        main { flex: 1; display: flex; flex-direction: column; }
+        #chat-header { padding: 15px 25px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         
-        .msg.me { align-self: flex-end; background: var(--msg-me); border-bottom-right-radius: 2px; }
-        .msg.other { align-self: flex-start; background: var(--msg-other); border-bottom-left-radius: 2px; }
-        .msg-user { font-size: 0.65rem; font-weight: bold; margin-bottom: 4px; color: #94a3b8; }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 16px; border-radius: 12px; max-width: 80%; line-height: 1.4; position: relative; }
+        .msg.me { align-self: flex-end; background: var(--msg-me); color: white; border-bottom-right-radius: 2px; }
+        .msg.other { align-self: flex-start; background: var(--msg-other); border: 1px solid var(--border); border-bottom-left-radius: 2px; }
+        .msg-info { font-size: 0.65rem; opacity: 0.7; margin-bottom: 4px; font-weight: bold; }
 
         /* Controls */
-        .btn { border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-invite { background: var(--success); color: white; margin-left: 10px; font-size: 0.8rem; }
-        .btn:hover { opacity: 0.8; transform: scale(1.02); }
+        .btn { border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 0.85rem; }
+        .btn-main { background: var(--msg-me); color: white; width: 100%; margin-bottom: 8px; }
+        .btn-invite { background: var(--success); color: white; }
 
-        .input-area { padding: 20px; background: var(--sidebar); display: flex; gap: 12px; border-top: 1px solid #2d3748; }
-        #msg-input { background: #0b0e14; border: 1px solid #334155; color: white; padding: 12px 18px; border-radius: 12px; flex: 1; outline: none; }
-        #msg-input:focus { border-color: var(--accent); }
+        .input-area { padding: 20px; background: var(--sidebar); display: flex; gap: 10px; border-top: 1px solid var(--border); }
+        input { background: var(--bg); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 6px; flex: 1; outline: none; }
+        input:focus { border-color: var(--accent); }
     </style>
 </head>
 <body>
 
 <aside id="sidebar">
     <div class="sidebar-header">
-        <div id="my-id" class="my-id-badge">Connecting...</div>
-        <button class="btn btn-primary" onclick="createNewParty()" style="width: 100%; margin-bottom: 10px;">+ Party erstellen</button>
-        <button class="btn" onclick="joinPartyPrompt()" style="width: 100%; background: #334155; color: white;">ID beitreten</button>
+        <div id="my-id" class="my-id-badge">Initialisiere ID...</div>
+        <button class="btn btn-main" onclick="createNewParty()">+ Neue Party erstellen</button>
+        <button class="btn" style="width: 100%; background: #30363d; color: white;" onclick="joinManual()">Einer ID beitreten</button>
     </div>
     <div id="party-list" class="party-list"></div>
 </aside>
 
 <main>
     <div id="chat-header">
-        <div class="header-info">
-            <h3 id="current-party-name">Willkommen</h3>
-            <span id="member-count">Wähle eine Party links aus</span>
+        <div>
+            <h3 id="party-name" style="margin:0; font-size: 1rem;">Nexus P2P Chat</h3>
+            <span id="member-count" style="font-size: 0.75rem; color: #8b949e;">Bereit für Verbindungen</span>
         </div>
-        <div id="header-actions" style="display: none;">
-            <button class="btn btn-invite" onclick="copyInviteLink()">Party einladen 🔗</button>
-        </div>
+        <button id="invite-btn" class="btn btn-invite" style="display:none;" onclick="copyInviteLink()">Einladungs-Link 🔗</button>
     </div>
     <div id="messages">
-        <div class="msg other">Erstelle eine Party und lade Freunde über den Link ein, um P2P zu chatten!</div>
+        <div style="text-align: center; color: #8b949e; margin-top: 40px;">Wähle links eine Party aus oder erstelle eine neue.</div>
     </div>
     <div class="input-area">
-        <input type="text" id="msg-input" placeholder="Schreib etwas..." onkeypress="if(event.key==='Enter') sendGroupMessage()">
-        <button class="btn btn-primary" onclick="sendGroupMessage()">Senden</button>
+        <input type="text" id="msg-input" placeholder="Nachricht an alle..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button class="btn btn-main" style="width: auto;" onclick="sendMessage()">Senden</button>
     </div>
 </main>
 
 <script>
     let peer = new Peer();
     let parties = {}; 
-    let activePartyId = null;
+    let activeId = null;
 
     peer.on('open', (id) => {
-        document.getElementById('my-id').innerText = "DEINE ID: " + id;
-        checkURLForInvite();
+        document.getElementById('my-id').innerText = "Deine ID: " + id;
+        checkUrlInvite();
     });
 
-    // Eingehende Verbindungen (Andere treten DEINER Party bei)
+    // LOGIK FÜR DEN HOST (Empfängt Nachrichten und verteilt sie weiter)
     peer.on('connection', (conn) => {
         conn.on('data', (data) => {
-            if(data.type === 'join-request') {
-                if(!parties[data.partyId]) parties[data.partyId] = { name: "Meine Party", connections: [] };
-                parties[data.partyId].connections.push(conn);
-                updatePartySidebar();
-                broadcastToParty(data.partyId, { type: 'system', text: `Ein neuer User ist da!`, partyId: data.partyId });
+            if(data.type === 'join') {
+                if(!parties[data.pId]) parties[data.pId] = { name: "Meine Party", conns: [], isHost: true };
+                parties[data.pId].conns.push(conn);
+                updateSidebar();
+                // Broadcast: "User ist beigetreten" an alle
+                broadcast(data.pId, { type: 'chat', user: 'System', text: `Ein neuer User ist der Party beigetreten!`, pId: data.pId });
             } else if(data.type === 'chat') {
-                displayMessage(data.partyId, data.user, data.text, 'other');
-            } else if(data.type === 'system') {
-                displayMessage(data.partyId, 'System', data.text, 'other');
+                // Host zeigt Nachricht an
+                displayMessage(data.pId, data.user, data.text, 'other');
+                // WICHTIG: Host schickt die Nachricht an ALLE anderen weiter
+                broadcast(data.pId, data, conn.peer); 
             }
         });
     });
 
-    function createNewParty() {
-        const name = prompt("Wie soll die Party heißen?");
-        if(!name) return;
-        const partyId = peer.id + "_p_" + Math.random().toString(36).substr(2, 5);
-        parties[partyId] = { name: name, connections: [] };
-        switchParty(partyId);
-        updatePartySidebar();
-    }
-
-    function checkURLForInvite() {
-        const params = new URLSearchParams(window.location.search);
-        const inviteId = params.get('invite');
-        if(inviteId) {
-            joinPartyById(inviteId);
-        }
-    }
-
-    function joinPartyPrompt() {
-        const id = prompt("Gib die Party-ID ein:");
-        if(id) joinPartyById(id);
-    }
-
-    function joinPartyById(partyId) {
-        const hostId = partyId.split('_p_')[0];
-        const conn = peer.connect(hostId);
-        conn.on('open', () => {
-            parties[partyId] = { name: "Party " + partyId.slice(-5), connections: [conn] };
-            conn.send({ type: 'join-request', partyId: partyId });
-            switchParty(partyId);
-            updatePartySidebar();
+    function broadcast(pId, data, excludePeerId = null) {
+        if(!parties[pId] || !parties[pId].isHost) return;
+        parties[pId].conns.forEach(c => {
+            if(c.open && c.peer !== excludePeerId) {
+                c.send(data);
+            }
         });
     }
 
-    function copyInviteLink() {
-        if(!activePartyId) return;
-        const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${activePartyId}`;
-        navigator.clipboard.writeText(inviteUrl);
-        alert("Invite-Link kopiert! Schick ihn deinen Freunden.");
+    function createNewParty() {
+        const name = prompt("Name der Party:");
+        if(!name) return;
+        const pId = peer.id + "_party_" + Math.random().toString(36).substr(2, 5);
+        parties[pId] = { name: name, conns: [], isHost: true };
+        selectParty(pId);
     }
 
-    function sendGroupMessage() {
+    function checkUrlInvite() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const invite = urlParams.get('invite');
+        if(invite) joinParty(invite);
+    }
+
+    function joinManual() {
+        const id = prompt("Party ID eingeben:");
+        if(id) joinParty(id);
+    }
+
+    function joinParty(pId) {
+        const hostId = pId.split('_party_')[0];
+        const conn = peer.connect(hostId);
+        conn.on('open', () => {
+            parties[pId] = { name: "Verbunden: " + pId.slice(-5), conns: [conn], isHost: false };
+            conn.send({ type: 'join', pId: pId });
+            selectParty(pId);
+            updateSidebar();
+        });
+        // Client empfängt Nachrichten vom Host
+        conn.on('data', (data) => {
+            if(data.type === 'chat') displayMessage(data.pId, data.user, data.text, 'other');
+        });
+    }
+
+    function sendMessage() {
         const input = document.getElementById('msg-input');
-        if(!input.value || !activePartyId) return;
+        if(!input.value || !activeId) return;
 
-        const msgData = { 
-            type: 'chat', 
-            partyId: activePartyId, 
-            text: input.value, 
-            user: peer.id.substring(0, 5) 
-        };
-
-        broadcastToParty(activePartyId, msgData);
-        displayMessage(activePartyId, "Ich", input.value, 'me');
+        const data = { type: 'chat', pId: activeId, user: peer.id.substring(0, 5), text: input.value };
+        
+        if(parties[activeId].isHost) {
+            displayMessage(activeId, "Ich", input.value, 'me');
+            broadcast(activeId, data); // Host schickt an alle
+        } else {
+            displayMessage(activeId, "Ich", input.value, 'me');
+            parties[activeId].conns[0].send(data); // Client schickt an Host
+        }
         input.value = "";
     }
 
-    function broadcastToParty(partyId, data) {
-        if(parties[partyId]) {
-            parties[partyId].connections.forEach(c => { if(c.open) c.send(data); });
-        }
+    function selectParty(id) {
+        activeId = id;
+        document.getElementById('party-name').innerText = parties[id].name;
+        document.getElementById('invite-btn').style.display = 'block';
+        document.getElementById('messages').innerHTML = "";
+        updateSidebar();
     }
 
-    function switchParty(id) {
-        activePartyId = id;
-        document.getElementById('current-party-name').innerText = parties[id].name;
-        document.getElementById('member-count').innerText = (parties[id].connections.length + 1) + " Member online";
-        document.getElementById('header-actions').style.display = 'block';
-        document.getElementById('messages').innerHTML = ""; 
-        displayMessage(id, 'System', `Willkommen in ${parties[id].name}`, 'other');
-        updatePartySidebar();
-    }
-
-    function updatePartySidebar() {
+    function updateSidebar() {
         const list = document.getElementById('party-list');
         list.innerHTML = "";
         for(let id in parties) {
-            const item = document.createElement('div');
-            item.className = `party-item ${id === activePartyId ? 'active' : ''}`;
-            item.innerText = parties[id].name;
-            item.onclick = () => switchParty(id);
-            list.appendChild(item);
+            const div = document.createElement('div');
+            div.className = `party-item ${id === activeId ? 'active' : ''}`;
+            div.innerText = parties[id].name;
+            div.onclick = () => selectParty(id);
+            list.appendChild(div);
         }
     }
 
-    function displayMessage(partyId, user, text, type) {
-        if(partyId !== activePartyId) return;
+    function displayMessage(pId, user, text, type) {
+        if(pId !== activeId) return;
         const msgs = document.getElementById('messages');
-        const div = document.createElement('div');
-        div.className = `msg ${type}`;
-        div.innerHTML = `<div class="msg-user">${user}</div><div>${text}</div>`;
-        msgs.appendChild(div);
+        const d = document.createElement('div');
+        d.className = `msg ${type}`;
+        d.innerHTML = `<div class="msg-info">${user}</div>${text}`;
+        msgs.appendChild(d);
         msgs.scrollTop = msgs.scrollHeight;
     }
+
+    function copyInviteLink() {
+        const url = `${window.location.origin}${window.location.pathname}?invite=${activeId}`;
+        navigator.clipboard.writeText(url);
+        alert("Einladungs-Link kopiert! Jeder mit diesem Link sieht alle Nachrichten in dieser Party.");
+    }
 </script>
+
 </body>
 </html>
